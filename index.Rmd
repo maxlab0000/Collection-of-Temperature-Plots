@@ -1,0 +1,421 @@
+---
+title: "Collection of Temperature Graphs"
+author: "Enya & Filina & Ivan"
+date: "4/1/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Tower Top Daily Average 
+
+```{r}
+library(tidyverse)
+top <- read.csv('Tower_Top_0066_5306_0586_Full.csv')
+top$Temperature <- ((top$Temp - 32)*5)/9
+top <- separate(top, Time, into = c('hours','minutes'))
+top$hours <- as.numeric(top$hours)
+top <- na.omit(top)
+
+for (i in 1:nrow(top)) { 
+  if (top$minutes[i] == 30) {
+    top$hours[i] <- top$hours[i] + 0.5
+  }
+}
+
+top2 <- top %>% group_by(Date, hours) 
+top2$Place <- "Top2"
+
+boxplot(Temperature ~ hours, data = top2, col = "salmon", main = "Boxplots of Tower Top Temperatures", xlab = "Hours from Midnight", ylab = "Temperature in Celcius")
+
+```
+
+## Tower Middle Daily Average
+
+```{r}
+middle <- read.csv('Tower_Middle_7433.csv')
+middle <- separate(middle, Time, into = c('hours','minutes'))
+middle$hours <- as.numeric(middle$hours)
+middle$Temperature <- ((middle$Temp - 32)*5)/9
+
+for (i in 1:nrow(middle)) { 
+  if (middle$minutes[i] == 30) {
+    middle$hours[i] <- middle$hours[i] + 0.5
+  }
+}
+
+middle2 <- middle %>% group_by(Date, hours)
+middle2$Place <- "Middle2"
+
+boxplot(Temperature ~ hours, data = middle2, col = "green", main = "Boxplots of Tower Middle Temperatures", xlab = "Hours from Midnight", ylab = "Temperature in Celcius")
+```
+
+## Tower Top + Tower Middle Comparison
+
+```{r}
+library(plotly)
+
+mis <- middle %>% arrange(Date, hours) 
+mis$Place <- "Middle"
+for (i in 1:nrow(mis)) { 
+  if (mis$minutes[i] == 45) {
+    mis$hours[i] <- mis$hours[i] + 0.5
+  }
+}
+mis2 <- mis %>% distinct(Date, hours, .keep_all = T) %>% group_by(hours) %>% mutate(Average = mean(Temp, na.rm = T)) %>% slice(1)
+mis3 <- top  %>% arrange(Date, hours) 
+mis3$Place <- "Top"
+for (i in 1:nrow(mis3)) { 
+  if (mis3$minutes[i] == 45) {
+    mis3$hours[i] <- mis3$hours[i] + 0.5
+  }
+}
+
+mis4 <- mis3 %>% distinct(Date, hours, .keep_all = T) %>% group_by(hours) %>% mutate(Average = mean(Temp, na.rm = T)) %>% slice(1)
+mis4$Place <- "Top"
+
+topmiddle <- rbind(mis2, mis4)
+
+topmiddle$hours <- as.numeric(topmiddle$hours)
+
+plot1 <- ggplot(topmiddle, aes(hours, Average, color = Place)) + geom_smooth(aes(x = hours, y = Average), method = "lm",
+              formula = y ~ poly(x, 23), se = FALSE) + geom_errorbar(alpha = 0.3, aes(ymin = Average - sd(Average, na.rm = T), ymax = Average + sd(Average, na.rm = T), width = 0.2)) 
+
+plot1
+```
+
+## Tower Base Daily Average
+
+```{r}
+base <- read.csv('Tower Base 4377.csv')
+base$Temperature <- ((base$Temp - 32)*5)/9
+base <- separate(base, Time, into = c('hours','minutes'))
+base$hours <- as.numeric(base$hours)
+base <- na.omit(base)
+
+for (i in 1:nrow(base)) { 
+  if (base$minutes[i] == 30) {
+    base$hours[i] <- base$hours[i] + 0.5
+  }
+}
+
+base2 <- base %>% group_by(Date, hours)
+base2$Place <- "Base2"
+
+boxplot(Temperature ~ hours, data = base2, col = "salmon", main= "Boxplots of Tower Base Temperatures", xlab = "Hours from Midnight", ylab = "Temperature in Celcius")
+```
+
+## Plots of Tower
+
+```{r}
+mis <- middle %>% arrange(Date, hours) 
+mis$Place <- "Middle"
+mis$minutes <- as.numeric(mis$minutes)
+mis$hours <- as.numeric(mis$hours)
+
+for (i in 1:nrow(mis)) { 
+  if (mis$minutes[i] == 45) {
+    mis$hours[i] <- mis$hours[i] + 0.5
+  }
+}
+mis2 <- mis %>% distinct(Date, hours, .keep_all = T) %>% group_by(hours) %>% mutate(Average = mean(Temp, na.rm = T)) %>% slice(1)
+
+mis3 <- top  %>% arrange(Date, hours) 
+mis3$Place <- "Top"
+
+mis3$minutes <- as.numeric(mis3$minutes)
+mis3$hours <- as.numeric(mis3$hours)
+for (i in 1:nrow(mis3)) { 
+  if (mis3$minutes[i] == 45) {
+    mis3$hours[i] <- mis3$hours[i] + 0.5
+  }
+}
+
+mis4 <- mis3 %>% distinct(Date, hours, .keep_all = T) %>% group_by(hours) %>% mutate(Average = mean(Temp, na.rm = T)) %>% slice(1)
+mis4$Place <- "Top"
+
+mis5 <- base  %>% arrange(Date, hours) 
+mis5$Place <- "Base"
+mis5$minutes <- as.numeric(mis5$minutes)
+mis5$hours <- as.numeric(mis5$hours)
+for (i in 1:nrow(mis5)) { 
+  if (mis5$minutes[i] == 45) {
+    mis5$hours[i] <- mis5$hours[i] + 0.5
+  }
+}
+
+mis6 <- mis5 %>% distinct(Date, hours, .keep_all = T) %>% group_by(hours) %>% mutate(Average = mean(Temp, na.rm = T)) %>% slice(1)
+mis6$Place <- "Base"
+
+topmiddle <- rbind(mis2, mis6, mis4)
+
+topmiddle$hours <- as.numeric(topmiddle$hours)
+
+ggplot(topmiddle, aes(hours, Average, color = Place)) + geom_smooth(aes(x = hours, y = Average), method = "lm", formula = y ~ poly(x, 23), se = FALSE) + geom_errorbar(alpha = 0.2, aes(ymin = Average - sd(Average, na.rm = T), ymax = Average + sd(Average, na.rm = T), width = 0.2)) + geom_rect(aes(xmin = 5.75, xmax = 6.25, ymin = 20, ymax = 30),
+               fill = "transparent", color = "black", size = 0.5, linetype = 2) + ggtitle("Plots of Tower")
+
+ggplotly(plot1)
+```
+
+
+```{r}
+library(tidyverse)
+MP150 <- read.csv("MP150_5354_7432.csv")
+Lago0066 <- read.csv("Lago 0066.csv")
+Lago5353 <- read.csv("Lago 5353.csv")
+```
+
+## MP150 Plot Daily Average
+
+```{r}
+MP150 <- read.csv("MP150_5354_7432.csv")
+MP150 <- separate(MP150, Date...Time, into = c("dates", "Time"), sep = " ")
+MP150$dates <- as.Date(MP150$dates, "%m/%d/%Y")
+MP150 <- separate(MP150, Time, into = c('hours','minutes'))
+MP150$hours <- as.numeric(MP150$hours)
+
+for (i in 1:nrow(MP150)) { 
+  if (MP150$minutes[i] == 30) {
+    MP150$hours[i] <- MP150$hours[i] + 0.5
+  }
+}
+
+MP1502 <- MP150 %>% group_by(dates, hours)
+
+boxplot(Temperature ~ hours, data = MP1502, col = "salmon", main= "Boxplots of MP150 Temperatures", xlab = "Hours from Midnight", ylab = "Temperature in Celcius")
+```
+
+## Lago Plot Daily Average
+
+```{r}
+Lago0066 <- read.csv("Lago 0066.csv")
+Lago5353 <- read.csv("Lago 5353.csv")
+Lago5353 <- Lago5353[,-1]
+colnames(Lago5353) <- c("Number", "Date...Time", "Temperature", "Humidity")
+colnames(Lago0066) <- c("Number", "Date...Time", "Temperature", "Humidity")
+Lago <- rbind(Lago0066, Lago5353)
+Lago$Temperature <- ((Lago$Temperature - 32)*5)/9
+Lago <- separate(Lago, Date...Time, into = c("dates", "Time"), sep = " ")
+Lago$dates <- as.Date(Lago$dates, "%m/%d/%Y")
+Lago <- separate(Lago, Time, into = c('hours','minutes'))
+
+Lago$hours <- as.numeric(Lago$hours)
+
+for (i in 1:nrow(Lago)) { 
+  if (Lago$minutes[i] == 30) {
+    Lago$hours[i] <- Lago$hours[i] + 0.5
+  }
+}
+
+Lago2 <- Lago %>% group_by(dates, hours)
+
+boxplot(Temperature ~ hours, data = Lago2, col = "salmon", main= "Boxplots of Lago Temperatures", xlab = "Hours from Midnight", ylab = "Temperature in Celcius")
+
+hello <- Lago2 %>% filter(dates == "2019-08-04")
+```
+
+## Parahuaco Plot Daily Average
+
+```{r}
+Parahuaco <- read.csv("Parahuaco RH.csv")
+Parahuaco <- separate(Parahuaco, Date...Time, into = c("dates", "Time"), sep = " ")
+Parahuaco$dates <- as.Date(Parahuaco$dates, "%m/%d/%Y")
+Parahuaco <- separate(Parahuaco, Time, into = c('hours','minutes'))
+Parahuaco$hours <- as.numeric(Parahuaco$hours)
+
+for (i in 1:nrow(Parahuaco)) { 
+  if (Parahuaco$minutes[i] == 30) {
+    Parahuaco$hours[i] <- Parahuaco$hours[i] + 0.5
+  }
+}
+
+boxplot(Temperature ~ hours, data = Parahuaco, col = "salmon", main= "Boxplots of Parahuaco Temperatures", xlab = "Hours from Midnight", ylab = "Temperature in Celcius")
+```
+
+## GP Plot Daily Average
+
+```{r}
+GP <- read.csv("GP RH.csv")
+GP <- GP[,-1]
+GP <- separate(GP, Date...Time, into = c("dates", "Time"), sep = " ")
+GP$dates <- as.Date(GP$dates, "%m/%d/%Y")
+GP <- separate(GP, Time, into = c('hours','minutes'))
+GP$hours <- as.numeric(GP$hours)
+
+for (i in 1:nrow(GP)) { 
+  if (GP$minutes[i] == 30) {
+    GP$hours[i] <- GP$hours[i] + 0.5
+  }
+}
+
+GP2 <- GP %>% group_by(dates, hours)
+
+boxplot(Temperature ~ hours, data = GP, col = "salmon", main= "Boxplots of GP Temperatures", xlab = "Hours from Midnight (2019-07-26)", ylab = "Temperature in Celcius")
+```
+
+## Murcialago (Rest) Daily Average
+
+```{r}
+Murcialago <- read.csv("Murcialago5306.csv")
+Murcialago <- separate(Murcialago, Date...Time, into = c("dates", "Time"), sep = " ")
+Murcialago$dates <- as.Date(Murcialago$dates, "%m/%d/%Y")
+Murcialago <- separate(Murcialago, Time, into = c('hours','minutes'))
+Murcialago$hours <- as.numeric(Murcialago$hours)
+
+for (i in 1:nrow(Murcialago)) { 
+  if (Murcialago$minutes[i] == 30) {
+    Murcialago$hours[i] <- Murcialago$hours[i] + 0.5
+  }
+}
+
+Murcialago2 <- Murcialago %>% group_by(dates, hours)
+
+boxplot(Temperature ~ hours, data = Murcialago2, col = "salmon", main= "Boxplots of Murcialago Temperatures", xlab = "Hours from Midnight", ylab = "Temperature in Celcius") 
+
+```
+
+## Parahuaco (Rest) Daily Average
+  
+```{r}
+Parahuaco <- read.csv("Parahuaco RH.csv")
+Parahuaco <- separate(Parahuaco, Date...Time, into = c("dates", "Time"), sep = " ")
+Parahuaco$dates <- as.Date(Parahuaco$dates, "%m/%d/%Y")
+Parahuaco <- separate(Parahuaco, Time, into = c('hours','minutes'))
+Parahuaco$hours <- as.numeric(Parahuaco$hours)
+
+for (i in 1:nrow(Parahuaco)) { 
+  if (Parahuaco$minutes[i] == 30) {
+    Parahuaco$hours[i] <- Parahuaco$hours[i] + 0.5
+  }
+}
+
+Parahuaco2 <- Parahuaco %>% group_by(dates, hours)
+
+boxplot(Temperature ~ hours, data = Parahuaco2, col = "salmon", main= "Boxplots of Parahuaco Temperatures", xlab = "Hours from Midnight", ylab = "Temperature in Celcius")
+```
+
+## Danta (Rest) Daily Average
+
+```{r}
+dataset <- read.csv("Denta Region RH.csv")
+dataset <- dataset[,-1]
+
+colnames(dataset) <- c("Number", "Date...Time", "Temperature", "Humidity")
+
+Danta <- separate(dataset, Date...Time, into = c("dates", "Time"), sep = " ")
+Danta$dates <- as.Date(Danta$dates, "%m/%d/%Y")
+Danta <- separate(Danta, Time, into = c('hours','minutes'))
+Danta$hours <- as.numeric(Danta$hours)
+
+for (i in 1:nrow(Danta)) { 
+  if (Danta$minutes[i] == 30) {
+    Danta$hours[i] <- Danta$hours[i] + 0.5
+  }
+}
+
+Danta2 <- Danta %>% group_by(dates, hours)
+
+boxplot(Temperature ~ hours, data = Danta2, col = "salmon", main= "Boxplots of Danta Temperatures", xlab = "Hours from Midnight", ylab = "Temperature in Celcius")
+```
+
+## Titi Cabin (Sleep) Daily Average
+
+```{r}
+Cabin <- read.csv("TitiCabin9223.csv")
+Cabin <- separate(Cabin, Date...Time, into = c("dates", "Time"), sep = " ")
+Cabin$dates <- as.Date(Cabin$dates, "%m/%d/%Y")
+Cabin <- separate(Cabin, Time, into = c('hours','minutes'))
+Cabin$hours <- as.numeric(Cabin$hours)
+
+for (i in 1:nrow(Cabin)) { 
+  if (Cabin$minutes[i] == 30) {
+    Cabin$hours[i] <- Cabin$hours[i] + 0.5
+  }
+}
+
+Cabin2 <- Cabin %>% group_by(dates, hours)
+
+boxplot(Temperature ~ hours, data = Cabin2, col = "salmon", main= "Boxplots of Titi Cabin Temperatures", xlab = "Hours from Midnight", ylab = "Temperature in Celcius")
+```
+
+## Titi Trail (Sleep) Daily Average
+
+```{r}
+Trail <- read.csv("TitiTrail2115.csv")
+Trail <- separate(Trail, Date...Time, into = c("dates", "Time"), sep = " ")
+Trail$dates <- as.Date(Trail$dates, "%m/%d/%Y")
+Trail <- separate(Trail, Time, into = c('hours','minutes'))
+Trail$hours <- as.numeric(Trail$hours)
+
+for (i in 1:nrow(Trail)) { 
+  if (Trail$minutes[i] == 30) {
+    Trail$hours[i] <- Trail$hours[i] + 0.5
+  }
+}
+
+Trail2 <- Trail %>% group_by(dates, hours)
+
+boxplot(Temperature ~ hours, data = Trail2, col = "salmon", main= "Boxplots of Titi Trail Temperatures", xlab = "Hours from Midnight", ylab = "Temperature in Celcius")
+```
+## Comparison of Tower top middle bottom Temperatures
+
+```{r}
+top <- read.csv('Tower_Top_0066_5306_0586_Full.csv')
+top$Temp <- ((top$Temp - 32)*5)/9
+top <- separate(top, Time, into = c('hours','minutes'))
+top$hours <- as.numeric(top$hours)
+top <- na.omit(top)
+middle <- read.csv('Tower_Middle_7433.csv')
+middle <- separate(middle, Time, into = c('hours','minutes'))
+middle$hours <- as.numeric(middle$hours)
+middle$Temp <- ((middle$Temp - 32)*5)/9
+for (i in 1:nrow(top)) { 
+  if (top$minutes[i] == 30| top$minutes[i]==45) {
+    top$hours[i] <- top$hours[i] + 0.5
+  }
+}
+for (i in 1:nrow(middle)) { 
+  if (middle$minutes[i] == 30| middle$minutes[i]==45) {
+    middle$hours[i] <- middle$hours[i] + 0.5
+  }
+}
+base <- read.csv('Tower Base 4377.csv')
+base$Temp <- ((base$Temp - 32)*5)/9
+base <- separate(base, Time, into = c('hours','minutes'))
+base$hours <- as.numeric(base$hours)
+base <- na.omit(base)
+for (i in 1:nrow(base)) { 
+  if (base$minutes[i] == 30 | base$minutes[i]==45) {
+    base$hours[i] <- base$hours[i] + 0.5
+  }
+}
+base2 <- base %>% group_by(hours) %>% summarize(Temperature = mean(Temp, na.rm = T))
+base2$Location <- "Base"
+top2 <- top %>% group_by(hours) %>% summarize(Temperature = mean(Temp, na.rm = T))
+middle2 <- middle %>% group_by(hours) %>% summarize(Temperature = mean(Temp, na.rm = T))
+top2$Location <- "Top"
+middle2$Location <- "Middle"
+tmb <- rbind(top2, middle2, base2)
+
+ggplot(tmb, aes(hours, Temperature)) +
+  geom_point(aes(color = Location)) + geom_line(aes(color = Location)) + labs(title = "Comparison of Tower Top Middle Bottom Temperature")
+```
+
+## Plot of all Sites
+
+```{r}
+library(plotly)
+Cabin22 <- Cabin2  %>% group_by(hours) %>% summarise(Temperature = mean(Temperature, na.rm = T)) %>% mutate(Location = "Titi Cabin")
+Danta22 <- Danta2 %>% group_by(hours) %>% summarise(Temperature = mean(Temperature, na.rm = T)) %>% mutate(Location = "Danta")
+MP15022 <- MP1502 %>% group_by(hours) %>% summarise(Temperature = mean(Temperature, na.rm = T)) %>% mutate(Location = "MP150")
+Trail22 <- Trail2 %>% group_by(hours) %>% summarise(Temperature = mean(Temperature, na.rm = T)) %>% mutate(Location = "Titi Cabin")
+Parahuaco22 <- Parahuaco2 %>% group_by(hours) %>% summarise(Temperature = mean(Temperature, na.rm = T)) %>% mutate(Location = "Parahuaco")
+Murcialago22 <- Murcialago2 %>% group_by(hours) %>% summarise(Temperature = mean(Temperature, na.rm = T)) %>% mutate(Location = "Murcialago")
+GP22 <- GP2 %>% group_by(hours) %>% summarise(Temperature = mean(Temperature, na.rm = T)) %>% mutate(Location = "GP")
+AllSites <- rbind(top2, middle2, base2, Cabin22, Danta22, MP15022, Trail22, Parahuaco22, Murcialago22, GP22)
+allplots <- ggplot(AllSites, aes(hours, Temperature, color = Location)) + geom_smooth(se = F, size = 0.35)
+ggplotly(allplots)
+```
+
